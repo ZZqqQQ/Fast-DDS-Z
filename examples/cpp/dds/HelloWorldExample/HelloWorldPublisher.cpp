@@ -218,7 +218,7 @@ bool HelloWorldPublisher::publish(
     if (listener_.firstConnected_ || !waitForListener || listener_.matched_ > 0)
     {
         hello_.index(hello_.index() + 1);
-        writer_->write(&hello_);
+        writer_->write_Z(&hello_);
         return true;
     }
     return false;

@@ -123,6 +123,7 @@ public:
     {
         return loans_.empty();
     }
+    ResourceLimitedVector<PayloadInfo_t> loans_;
 
 private:
 
@@ -137,7 +138,6 @@ private:
             };
     }
 
-    ResourceLimitedVector<PayloadInfo_t> loans_;
 
 };
 
@@ -546,6 +546,83 @@ bool DataWriterImpl::write(
 
     logInfo(DATA_WRITER, "Writing new data");
     return ReturnCode_t::RETCODE_OK == create_new_change(ALIVE, data);
+}
+
+ReturnCode_t DataWriterImpl::write_Z(void* data){
+    std::cout << "DataWriterImpl::writer" << std::endl;
+    if(nullptr == writer_){
+        return ReturnCode_t::RETCODE_BAD_PARAMETER;
+    }
+    eprosima::fastrtps::rtps::WriteParams wParams;
+    
+    InstanceHandle_t iHandle;
+    std::unique_lock<eprosima::fastrtps::RecursiveTimedMutex> lock(writer_->getMutex());
+
+    PayloadInfo_t payload;
+    //检查是否已经借用到了loans_中的缓冲区
+    bool was_loaned;
+    if(nullptr != loans_){
+        octet* data_base_add = static_cast<octet*>(data) - SerializedPayload_t::representation_header_size;
+        ResourceLimitedVector<PayloadInfo_t>::iterator it;
+        for(it = loans_->loans_.begin();it != loans_->loans_.end();it++){
+            if(it->payload.data == data_base_add){
+                payload = *it;
+                loans_->loans_.erase(it);
+                was_loaned = true;
+                break;
+            }
+        }
+        if(it == loans_->loans_.end()){
+            was_loaned = false;
+        }
+    }else{
+        was_loaned = false;
+    }
+
+    //如果没有借到缓冲区
+    if(!was_loaned){
+        if(!get_free_payload_from_pool(type_->getSerializedSizeProvider(data), payload)){
+            return ReturnCode_t::RETCODE_OUT_OF_RESOURCES;
+        }
+
+        if(!type_->serialize(data, &payload.payload)){
+            return_payload_to_pool(payload);
+            return ReturnCode_t::RETCODE_ERROR;
+        }
+    }
+
+    CacheChange_t* ch = writer_->new_change(ALIVE, iHandle);
+    if(ch != nullptr){
+        payload.move_into_change(*ch);
+        bool added = false;
+        auto max_blocking_time = steady_clock::now() +
+        microseconds(::TimeConv::Time_t2MicroSecondsInt64(qos_.reliability().max_blocking_time));
+        
+        static_cast<void>(max_blocking_time);
+
+        std::cout << "Using Z" << std::endl;
+        added = history_.add_pub_change_Z(ch, wParams, lock);
+        // std::cout << "Using Original" << std::endl;
+        // added = history_.add_pub_change(ch, wParams, lock, max_blocking_time);
+
+        if(!added){
+            if(was_loaned){
+                payload.move_from_change(*ch);
+                if(nullptr != loans_){
+                    //add_loan
+                    static_cast<void>(data);
+                    assert(data == payload.payload.data + SerializedPayload_t::representation_header_size);
+                    loans_->add_loan(data, payload);
+                }
+            }
+            writer_->release_change(ch);
+            return ReturnCode_t::RETCODE_TIMEOUT;
+        }
+
+        return ReturnCode_t::RETCODE_OK;
+    }
+
+    return ReturnCode_t::RETCODE_OUT_OF_RESOURCES;
 }
 
 bool DataWriterImpl::write(

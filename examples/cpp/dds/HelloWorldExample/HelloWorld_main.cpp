@@ -166,6 +166,8 @@ int main(
 {
     int columns;
 
+    Log::SetVerbosity(Log::Kind::Warning);
+
 #if defined(_WIN32)
     char* buf = nullptr;
     size_t sz = 0;
@@ -185,7 +187,7 @@ int main(
     std::cout << "Starting " << std::endl;
 
     int type = 1;
-    uint32_t count = 10;
+    uint32_t count = 2;
     uint32_t sleep = 100;
     bool use_environment_qos = false;
 

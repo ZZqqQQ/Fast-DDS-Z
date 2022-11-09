@@ -16,6 +16,8 @@
  * @file HelloWorldSubscriber.cpp
  *
  */
+#define HAVE_LOG_NO_INFO 0
+#define FASTDDS_ENFORCE_LOG_INFO 1
 
 #include "HelloWorldSubscriber.h"
 #include <fastrtps/attributes/ParticipantAttributes.h>
@@ -51,7 +53,6 @@ bool HelloWorldSubscriber::init(
     }
 
     participant_ = factory->create_participant(0, pqos);
-
     if (participant_ == nullptr)
     {
         return false;
@@ -154,6 +155,7 @@ void HelloWorldSubscriber::SubListener::on_data_available(
         DataReader* reader)
 {
     SampleInfo info;
+    std::cout << "SubListener::on_data_avaiable" << std::endl;
     if (reader->take_next_sample(&hello_, &info) == ReturnCode_t::RETCODE_OK)
     {
         if (info.instance_state == ALIVE_INSTANCE_STATE)

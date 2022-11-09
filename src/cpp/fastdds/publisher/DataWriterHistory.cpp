@@ -256,6 +256,75 @@ bool DataWriterHistory::add_pub_change(
     return returnedValue;
 }
 
+bool DataWriterHistory::add_pub_change_Z(
+    CacheChange_t* change,
+    WriteParams& wparams,
+    std::unique_lock<RecursiveTimedMutex>& lock){
+        static_cast<void>(lock);
+        std::cout << "Customized DataWriterHistory::add_pub_change" << std::endl;
+        //prepare_change()
+        if(m_isHistoryFull){
+            bool ret_val;
+            ret_val = this->remove_min_change();
+
+            if(!ret_val){
+                logWarning(RTPS_HISTORY, "Attempting to add Data to Full WriterCache: " << topic_att_.getTopicDataType());
+                return false;  
+            }
+        }
+        bool add = (topic_att_.getTopicKind() == NO_KEY);
+        if(!add){
+            logError(DATA_WRITER_HISTORY, "With key function is not implemented yet!");
+            exit(1);
+        }
+        //add_change()
+        if(add){
+            //this->add_change_(change, wparams);
+            if(nullptr == mp_writer || nullptr == mp_mutex){
+                logError(RTPS_WRITER, "No writer has been created!");
+                return false;
+            }
+
+            std::lock_guard<RecursiveTimedMutex> guard(*mp_mutex);
+            //prepare_and_add_change
+            //this->prepare_and_add_change(change, wparams);
+            if(change->writerGUID != mp_writer->getGuid()){
+                logError(RTPS_WRITER_HISTORY, "Change writer GUID " << change->writerGUID << " is different than Writer GUID " << mp_writer->getGuid());
+                return false;
+            }
+            if(m_att.memoryPolicy == PREALLOCATED_MEMORY_MODE && change->serializedPayload.length > m_att.payloadMaxSize){
+                logError(RTPS_WRITER_HISTORY, "Change payload size of " << change->serializedPayload.length << " bytes is larger than the history payload size limit: " << m_att.payloadMaxSize);
+                return false;
+            }
+
+            ++m_lastCacheChangeSeqNum;
+            change->sequenceNumber = m_lastCacheChangeSeqNum;
+            if(wparams.source_timestamp().seconds() < 0){
+                eprosima::fastrtps::rtps::Time_t::now(change->sourceTimestamp);
+            }else{
+                change->sourceTimestamp = wparams.source_timestamp();
+            }
+            change->writer_info.num_sent_submessages = 0;
+
+            change->write_params = wparams;
+            wparams.sample_identity().writer_guid(change->writerGUID);
+            wparams.sample_identity().sequence_number(change->sequenceNumber);
+            wparams.related_sample_identity(wparams.sample_identity());
+            set_fragments(change);
+
+            m_changes.push_back(change);
+            if(static_cast<int32_t>(m_changes.size()) == m_att.maximumReservedCaches){
+                m_isHistoryFull = true;
+            }
+            logInfo(RTPS_WRITER_HISTORY, "Change " << change->sequenceNumber << " added with " << change->serializedPayload.length << " bytes.");
+
+            //notify_writer()-->unsent_change_added_to_history()
+            mp_writer->unsent_change_added_to_history(change, std::chrono::steady_clock::now() + std::chrono::hours(24));
+        }
+
+        return true;
+    }
+
 bool DataWriterHistory::find_or_add_key(
         const InstanceHandle_t& instance_handle,
         const SerializedPayload_t& payload,

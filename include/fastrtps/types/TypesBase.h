@@ -206,7 +206,8 @@ public:
         RETCODE_TIMEOUT = 10,
         RETCODE_NO_DATA = 11,
         RETCODE_ILLEGAL_OPERATION = 12,
-        RETCODE_NOT_ALLOWED_BY_SECURITY = 13
+        RETCODE_NOT_ALLOWED_BY_SECURITY = 13, 
+        RETCODE_INIT_VAL = 14
     };
 
     ReturnCode_t()

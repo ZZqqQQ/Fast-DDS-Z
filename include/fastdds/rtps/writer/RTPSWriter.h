@@ -464,6 +464,9 @@ public:
             CDRMessage_t* message,
             const LocatorSelectorSender& locator_selector,
             std::chrono::steady_clock::time_point& max_blocking_time_point) const;
+    virtual void unsent_change_added_to_history(
+            CacheChange_t* change,
+            const std::chrono::time_point<std::chrono::steady_clock>& max_blocking_time) = 0;
 
 protected:
 
@@ -504,9 +507,6 @@ protected:
      * @param change Pointer to the change to add.
      * @param max_blocking_time
      */
-    virtual void unsent_change_added_to_history(
-            CacheChange_t* change,
-            const std::chrono::time_point<std::chrono::steady_clock>& max_blocking_time) = 0;
 
     /**
      * Indicate the writer that a change has been removed by the history due to some HistoryQos requirement.

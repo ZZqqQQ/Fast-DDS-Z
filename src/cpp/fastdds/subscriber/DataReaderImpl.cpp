@@ -739,6 +739,7 @@ ReturnCode_t DataReaderImpl::take_next_sample(
         void* data,
         SampleInfo* info)
 {
+    std::cout << "DataReaderImpl::take_next_sample" << std::endl;
     return read_or_take_next_sample(data, info, true);
 }
 

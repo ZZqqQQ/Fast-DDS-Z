@@ -92,6 +92,11 @@ public:
      */
     fastrtps::rtps::SerializedPayload_t* get_key_value(
             const fastrtps::rtps::InstanceHandle_t& handle);
+            
+    bool add_pub_change_Z(
+            fastrtps::rtps::CacheChange_t* change,
+            fastrtps::rtps::WriteParams& wparams,
+            std::unique_lock<fastrtps::RecursiveTimedMutex>& lock);
 
     /**
      * Add a change comming from the DataWriter.

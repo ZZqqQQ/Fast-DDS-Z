@@ -183,14 +183,19 @@ protected:
 
         return true;
     }
+    void set_fragments(
+            CacheChange_t* change);
 
+    bool prepare_and_add_change(
+            CacheChange_t* a_change,
+            WriteParams& wparams);
+            
     //!Last CacheChange Sequence Number added to the History.
     SequenceNumber_t m_lastCacheChangeSeqNum;
     //!Pointer to the associated RTPSWriter;
     RTPSWriter* mp_writer;
 
     uint32_t high_mark_for_frag_ = 0;
-
 private:
 
     /**
@@ -204,9 +209,9 @@ private:
      *
      * @return whether @c a_change could be added to the history.
      */
-    bool prepare_and_add_change(
-            CacheChange_t* a_change,
-            WriteParams& wparams);
+//     bool prepare_and_add_change(
+//             CacheChange_t* a_change,
+//             WriteParams& wparams);
 
     /**
      * Notifies the RTPS writer associated with this history that a change has been added.
@@ -220,8 +225,7 @@ private:
             CacheChange_t* a_change,
             const std::chrono::time_point<std::chrono::steady_clock>& max_blocking_time);
 
-    void set_fragments(
-            CacheChange_t* change);
+
 };
 
 } // namespace rtps

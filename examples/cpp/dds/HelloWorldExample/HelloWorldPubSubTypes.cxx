@@ -134,6 +134,8 @@ bool HelloWorldPubSubType::getKey(
         InstanceHandle_t* handle,
         bool force_md5)
 {
+    std::cout << "HelloWorldPubSubType::GETKEY" << std::endl;
+
     if (!m_isGetKeyDefined)
     {
         return false;

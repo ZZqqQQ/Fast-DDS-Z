@@ -447,3 +447,8 @@ compile_commands.json
 
 # Uncrustify
 uncrustify.cfg
+
+# ignore install directory
+install/
+
+*_Z.*

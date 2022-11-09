@@ -167,6 +167,9 @@ public:
     ReturnCode_t discard_loan(
             void*& sample);
 
+    ReturnCode_t write_Z(
+            void* data);
+
     /**
      * Write data to the topic.
      *
@@ -332,6 +335,10 @@ public:
 
     ReturnCode_t set_listener(
             DataWriterListener* listener);
+
+	fastrtps::rtps::RTPSWriter* get_writer_z(void)const{
+		return writer_;
+	}
 
     /**
      * This operation can be used to retrieve the instance key that corresponds to an

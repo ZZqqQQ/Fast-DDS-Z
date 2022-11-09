@@ -128,6 +128,7 @@ bool DynamicPubSubType::getKey(
         eprosima::fastrtps::rtps::InstanceHandle_t* handle,
         bool force_md5)
 {
+    std::cout << "DYNAMICPUBSUBTYPE::GETKEY()" << std::endl;
     if (dynamic_type_ == nullptr || !m_isGetKeyDefined)
     {
         return false;
