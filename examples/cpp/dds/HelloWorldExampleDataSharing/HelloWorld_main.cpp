@@ -33,7 +33,6 @@ int main(
     //    Log::SetVerbosity(Log::Kind::Info);
     //    Log::SetCategoryFilter(std::regex("(RTPS_WRITER)|(RTPS_READER)"));
 
-    std::cout << "Starting " << std::endl;
     int type = 1;
     int count = 10;
     int sleep = 100;

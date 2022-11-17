@@ -186,7 +186,6 @@ DataReader* SubscriberImpl::create_datareader(
         DataReaderListener* listener,
         const StatusMask& mask)
 {
-    logInfo(SUBSCRIBER, "CREATING SUBSCRIBER IN TOPIC: " << topic->get_name());
     //Look for the correct type registration
     TypeSupport type_support = participant_->find_type(topic->get_type_name());
 
@@ -222,6 +221,13 @@ DataReader* SubscriberImpl::create_datareader(
             return nullptr;
         }
     }
+
+    // std::cout << "RTPS Reader is nullptr???" << std::endl;
+    // if(nullptr == reader->get_impl()->reader_){
+    //     std::cout << "RTPS Reader is nullptr" << std::endl;
+    // }else{
+    //     std::cout << "No" << std::endl;
+    // }
 
     return reader;
 }

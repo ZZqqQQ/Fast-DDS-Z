@@ -591,10 +591,8 @@ std::pair<bool, DataReaderHistory::instance_info> DataReaderHistory::lookup_avai
         bool exact)
 {
     InstanceCollection::iterator it = data_available_instances_.end();
-        std::cout << "Key" << std::endl;
     if (!has_keys_)
     {
-        std::cout << "No Key" << std::endl;
         // NO_KEY topics can only return the fictitious instance.
         // Execution can only get here for two reasons:
         // - Looking for a specific instance (exact = true)
@@ -633,6 +631,17 @@ std::pair<bool, DataReaderHistory::instance_info> DataReaderHistory::lookup_avai
     }
 
     return { it != data_available_instances_.end(), it };
+}
+
+std::pair<bool, DataReaderHistory::instance_info> DataReaderHistory::lookup_available_instance_Z(
+    const InstanceHandle_t& handle,
+    bool exact
+){
+    if(has_keys_){
+        return lookup_available_instance(handle, exact);
+    }else{
+        return true == (!handle.isDefined() && !exact) ? std::make_pair(true, data_available_instances_.begin()) : std::make_pair(false, data_available_instances_.end());
+    }
 }
 
 std::pair<bool, DataReaderHistory::instance_info> DataReaderHistory::next_available_instance_nts(

@@ -261,7 +261,6 @@ bool DataWriterHistory::add_pub_change_Z(
     WriteParams& wparams,
     std::unique_lock<RecursiveTimedMutex>& lock){
         static_cast<void>(lock);
-        std::cout << "Customized DataWriterHistory::add_pub_change" << std::endl;
         //prepare_change()
         if(m_isHistoryFull){
             bool ret_val;

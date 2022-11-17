@@ -112,7 +112,6 @@ RTPSParticipant* RTPSDomain::createParticipant(
                 "RTPSParticipant Attributes: LeaseDuration should be >= leaseDuration announcement period");
         return nullptr;
     }
-
     // Only the first time, initialize environment file watch if the corresponding environment variable is set
     if (!RTPSDomainImpl::file_watch_handle_)
     {
@@ -127,7 +126,6 @@ RTPSParticipant* RTPSDomain::createParticipant(
             logWarning(RTPS_PARTICIPANT, filename + " does not exist. File watching not initialized.");
         }
     }
-
     uint32_t ID;
     {
         std::lock_guard<std::mutex> guard(m_mutex);
@@ -161,16 +159,12 @@ RTPSParticipant* RTPSDomain::createParticipant(
         logError(RTPS_PARTICIPANT, "Default Multicast Locator List contains invalid Locator");
         return nullptr;
     }
-
     PParam.participantID = ID;
-
     // Generate a new GuidPrefix_t
     GuidPrefix_t guidP;
     guid_prefix_create(ID, guidP);
-
     RTPSParticipant* p = new RTPSParticipant(nullptr);
     RTPSParticipantImpl* pimpl = nullptr;
-
     // If we force the participant to have a specific prefix we must define a different persistence GuidPrefix_t that
     // would ensure builtin endpoints are able to differentiate between a communication loss and a participant recovery
     if (PParam.prefix != c_GuidPrefix_Unknown)
@@ -181,7 +175,6 @@ RTPSParticipant* RTPSDomain::createParticipant(
     {
         pimpl = new RTPSParticipantImpl(domain_id, PParam, guidP, p, listen);
     }
-
     // Check implementation was correctly initialized
     if (!pimpl->is_initialized())
     {
@@ -189,7 +182,6 @@ RTPSParticipant* RTPSDomain::createParticipant(
         delete pimpl;
         return nullptr;
     }
-
     // Above constructors create the sender resources. If a given listening port cannot be allocated an iterative
     // mechanism will allocate another by default. Change the default listening port is unacceptable for
     // discovery server Participant.
@@ -212,7 +204,6 @@ RTPSParticipant* RTPSDomain::createParticipant(
         delete pimpl;
         return nullptr;
     }
-
     // Check there is at least one transport registered.
     if (!pimpl->networkFactoryHasRegisteredTransports())
     {

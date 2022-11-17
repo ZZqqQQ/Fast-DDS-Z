@@ -88,7 +88,6 @@ bool BuiltinProtocols::initBuiltinProtocols(
     transform_server_remote_locators(p_part->network_factory());
 
     const RTPSParticipantAllocationAttributes& allocation = p_part->getRTPSParticipantAttributes().allocation;
-
     // PDP
     switch (m_att.discovery_config.discoveryProtocol)
     {

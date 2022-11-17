@@ -120,7 +120,6 @@ bool PDPSimple::init(
     {
         return false;
     }
-
     //INIT EDP
     if (m_discovery.discovery_config.use_STATIC_EndpointDiscoveryProtocol)
     {
@@ -149,7 +148,6 @@ bool PDPSimple::init(
         logWarning(RTPS_PDP, "No EndpointDiscoveryProtocol defined");
         return false;
     }
-
     return true;
 }
 

@@ -259,7 +259,6 @@ ReturnCode_t DomainParticipantImpl::enable()
         false,
         rtps_attr,
         &rtps_listener_);
-
     if (part == nullptr)
     {
         part = RTPSDomain::createParticipant(domain_id_, false, rtps_attr, &rtps_listener_);
@@ -270,7 +269,6 @@ ReturnCode_t DomainParticipantImpl::enable()
             return ReturnCode_t::RETCODE_ERROR;
         }
     }
-
     guid_ = part->getGuid();
 
     {

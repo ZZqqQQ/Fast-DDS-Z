@@ -600,7 +600,6 @@ ReturnCode_t DataWriterImpl::write_Z(void* data){
         
         static_cast<void>(max_blocking_time);
 
-        std::cout << "Using Z" << std::endl;
         added = history_.add_pub_change_Z(ch, wParams, lock);
         // std::cout << "Using Original" << std::endl;
         // added = history_.add_pub_change(ch, wParams, lock, max_blocking_time);

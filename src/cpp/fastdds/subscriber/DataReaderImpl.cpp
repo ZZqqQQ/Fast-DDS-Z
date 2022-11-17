@@ -716,7 +716,6 @@ ReturnCode_t DataReaderImpl::read_or_take_next_sample(
     {
         cmd.add_instance(should_take);
     }
-
     ReturnCode_t code = cmd.return_value();
     if (ReturnCode_t::RETCODE_OK == code)
     {
@@ -727,6 +726,273 @@ ReturnCode_t DataReaderImpl::read_or_take_next_sample(
 
     return code;
 }
+
+ReturnCode_t DataReaderImpl::read_or_take_next_sample_Z(
+        void* data,
+        SampleInfo* info,
+        bool read_or_take
+){
+    if(reader_ == nullptr){
+        logWarning(DATAREADER IMPL, "read_or_take_next_sample_Z: RETCODE_NOT_ENABLED");
+        return ReturnCode_t::RETCODE_NOT_ENABLED;
+    }
+
+    if(history_.getHistorySize() == 0){
+        logWarning(DATAREADER IMPL, "read_or_take_next_sample_Z: RETCODE_NO_DATA");
+        return ReturnCode_t::RETCODE_NO_DATA;
+    }
+
+    std::unique_lock<RecursiveTimedMutex> lock(reader_->getMutex());
+    //DataReaderImpl::set_read_communication_status()
+    StatusMask notify_status = StatusMask::data_on_readers();
+    subscriber_->user_subscriber_->get_statuscondition().get_impl()->set_status(notify_status, false);
+
+    notify_status = StatusMask::data_available();
+    user_datareader_->get_statuscondition().get_impl()->set_status(notify_status, false);
+
+    auto it = history_.lookup_available_instance_Z(HANDLE_NIL, false);
+    if(!it.first){
+        logWarning(DATAREADER IMPL, "read_or_take_next_sample_Z: RETCODE_NO_DATA");
+        return ReturnCode_t::RETCODE_NO_DATA;
+    }
+    
+    StackAllocatedSequence<void*, 1> data_values;
+    const_cast<void**>(data_values.buffer())[0] = data;
+    StackAllocatedSequence<SampleInfo, 1> sample_infos;
+
+    // detail::ReadTakeCommand cmd(*this, data_values, sample_infos, 1, states, it.second, false);
+    // while(!cmd.is_finished()){
+    //     cmd.add_instance(read_or_take);
+    // }
+    // go_to_first_valid_instance()
+    CacheChange_t* change;
+    if(!check_instance_validity_and_get_sample_Z(it.second, &change)){
+        return ReturnCode_t::RETCODE_NO_DATA;
+    }
+
+    if(process_change_Z(it.second, change, data_values, sample_infos, read_or_take)){
+        *info = sample_infos[0];
+    }
+
+    try_notify_read_conditions();
+
+    return ReturnCode_t::RETCODE_OK;
+
+}
+
+bool DataReaderImpl::check_instance_validity_and_get_sample_Z(
+        detail::DataReaderHistory::instance_info& instance_info, 
+        CacheChange_t** change){
+    detail::StateFilter states{ NOT_READ_SAMPLE_STATE, ANY_VIEW_STATE, ANY_INSTANCE_STATE };
+
+    while(!check_instance_states_Z(instance_info, states)){
+        if(!goto_next_instance_Z(instance_info)){
+            logWarning(DATAREADER_IMPL, "Go to next instance failed!");
+            return false;
+        }
+    }
+
+    if(!get_sample_and_check_sample_states_Z(instance_info, change, states)){
+        logWarning(DATAREADER_IMPL, "Sample_state check failed!");
+        return false;
+    }
+
+    return true;
+}
+
+
+bool DataReaderImpl::check_instance_states_Z(
+        detail::DataReaderHistory::instance_info& instance_info, 
+        const detail::StateFilter& states){
+    return (0 != (states.instance_states & instance_info->second->instance_state)) && (0 != (states.view_states & instance_info->second->view_state));
+}
+
+bool DataReaderImpl::goto_next_instance_Z(detail::DataReaderHistory::instance_info& instance_info){
+    history_.check_and_remove_instance(instance_info);
+
+    auto result = history_.next_available_instance_nts(instance_info->first, instance_info);
+    if(!result.first){
+        return false;
+    }
+
+    instance_info = result.second;
+
+    return true;
+}
+
+bool DataReaderImpl::get_sample_and_check_sample_states_Z(
+        detail::DataReaderHistory::instance_info& instance_info, 
+        CacheChange_t** change, 
+        const detail::StateFilter& state){
+    *change = *(instance_info->second->cache_changes.begin());
+
+    SampleStateKind check = (*change)->isRead ? SampleStateKind::READ_SAMPLE_STATE : SampleStateKind::NOT_READ_SAMPLE_STATE;
+    if((check & state.sample_states) != 0){
+        return true;
+    }
+
+    return false;
+
+}
+
+bool DataReaderImpl::process_change_Z(
+        detail::DataReaderHistory::instance_info& instance_info, 
+        CacheChange_t* change, 
+        LoanableCollection& data_values, 
+        SampleInfoSeq_RTC& sample_infos, 
+        bool should_take){
+    WriterProxy* wp = nullptr;
+    bool is_future_change = false;
+    bool remove_change = false;
+    if(reader_->begin_sample_access_nts(change, wp, is_future_change)){
+        remove_change = !check_datasharing_validity_RTC(change, data_values.has_ownership());
+    }else{
+        remove_change = true;
+    }
+
+    if(remove_change){
+        history_.remove_change_sub(change);
+        return false;
+    }
+
+    if(!is_future_change){
+        bool added = add_sample_RTC(instance_info, data_values, sample_infos, change, remove_change);
+        history_.change_was_processed_nts(change, added);
+        reader_->end_sample_access_nts(change, wp, added);
+
+        if(added && !check_datasharing_validity_RTC(change, data_values.has_ownership())){
+            data_values.length(0);
+            sample_infos.length(0);
+
+            remove_change = true;
+            added = false;
+        }
+
+        if(remove_change || (added && should_take)){
+            history_.remove_change(change);
+        }
+
+        sample_infos[0].sample_rank = 0;
+    }
+    return true;
+
+}
+
+bool DataReaderImpl::check_datasharing_validity_RTC(
+        CacheChange_t* change,
+        bool has_ownership){
+    bool is_valid = true;
+    if (has_ownership)  //< On loans the user must check the validity anyways
+    {
+        DataSharingPayloadPool* pool = dynamic_cast<DataSharingPayloadPool*>(change->payload_owner());
+        if (pool)
+        {
+            //Check if the payload is dirty
+            is_valid = pool->is_sample_valid(*change);
+        }
+    }
+
+    if (!is_valid)
+    {
+        logWarning(RTPS_READER,
+                "Change " << change->sequenceNumber << " from " << change->writerGUID << " is overidden");
+        return false;
+    }
+
+    return true;
+}
+
+void DataReaderImpl::generate_info_RTC(
+        detail::DataReaderHistory::instance_info& instance_info, 
+        SampleInfoSeq_RTC& sample_infos, 
+        const detail::DataReaderCacheChange& item
+    ){
+    size_t current_slot_ = 0;
+    if (!sample_infos.has_ownership())
+    {
+        SampleInfo* pool_item = sample_info_pool_.get_item();
+        assert(pool_item != nullptr);
+        const_cast<void**>(sample_infos.buffer())[current_slot_] = pool_item;
+    }
+
+    SampleInfo& info = sample_infos[current_slot_];
+    generate_info_RTC(info, *instance_info->second, item);
+}
+
+void DataReaderImpl::generate_info_RTC(
+        SampleInfo& info,
+        const detail::DataReaderInstance& instance,
+        const detail::DataReaderCacheChange& item){
+    info.sample_state = item->isRead ? READ_SAMPLE_STATE : NOT_READ_SAMPLE_STATE;
+    info.instance_state = instance.instance_state;
+    info.view_state = instance.view_state;
+    info.disposed_generation_count = item->reader_info.disposed_generation_count;
+    info.no_writers_generation_count = item->reader_info.no_writers_generation_count;
+    info.sample_rank = 0;
+    info.generation_rank = 0;
+    info.absolute_generation_rank = 0;
+    info.source_timestamp = item->sourceTimestamp;
+    info.reception_timestamp = item->reader_info.receptionTimestamp;
+    info.instance_handle = item->instanceHandle;
+    info.publication_handle = InstanceHandle_t(item->writerGUID);
+    info.sample_identity.writer_guid(item->writerGUID);
+    info.sample_identity.sequence_number(item->sequenceNumber);
+    info.related_sample_identity = item->write_params.sample_identity();
+    info.valid_data = true;
+
+    switch (item->kind)
+    {
+        case eprosima::fastrtps::rtps::NOT_ALIVE_DISPOSED:
+        case eprosima::fastrtps::rtps::NOT_ALIVE_DISPOSED_UNREGISTERED:
+        case eprosima::fastrtps::rtps::NOT_ALIVE_UNREGISTERED:
+            info.valid_data = false;
+            break;
+        case eprosima::fastrtps::rtps::ALIVE:
+        default:
+            break;
+    }
+}
+
+bool DataReaderImpl::deserialize_sample_RTC(
+        CacheChange_t* change, 
+        LoanableCollection& data_value)
+{
+    size_t current_slot = 0;
+    auto payload = &(change->serializedPayload);
+    if(data_value.has_ownership()){
+        return type_->deserialize(payload, data_value.buffer()[current_slot]);
+    }else{
+        void* sample;
+        sample_pool_->get_loan(change, sample);
+        const_cast<void**>(data_value.buffer())[current_slot] = sample;
+        return true;
+    }
+}
+
+    bool DataReaderImpl::add_sample_RTC(
+            detail::DataReaderHistory::instance_info& instance_info, 
+            LoanableCollection& data_value,
+            SampleInfoSeq_RTC& sample_infos, 
+            CacheChange_t* const & item,
+            bool& deserialization_error
+    ){
+        deserialization_error = false;
+
+        data_value.length(1);
+        sample_infos.length(1);
+
+        generate_info_RTC(instance_info, sample_infos, item);
+        if(sample_infos[0].valid_data){
+            if(!deserialize_sample_RTC(item, data_value)){
+                data_value.length(0);
+                sample_infos.length(0);
+                deserialization_error = true;
+                return false;
+            }
+        }
+
+        return true;
+    }
 
 ReturnCode_t DataReaderImpl::read_next_sample(
         void* data,
@@ -739,7 +1005,6 @@ ReturnCode_t DataReaderImpl::take_next_sample(
         void* data,
         SampleInfo* info)
 {
-    std::cout << "DataReaderImpl::take_next_sample" << std::endl;
     return read_or_take_next_sample(data, info, true);
 }
 

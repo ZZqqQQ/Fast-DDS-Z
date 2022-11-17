@@ -81,17 +81,11 @@ ReturnCode_t DataWriter::discard_loan(
 bool DataWriter::write(
         void* data)
 {
-    std::cout << "-------------------------------" << std::endl;
-    std::cout << "Official DataWriter::write(void* data)" << std::endl;
-    std::cout << "-------------------------------" << std::endl;
     return impl_->write(data);
 }
 
 bool DataWriter::write_Z(
     void * data){
-    std::cout << "-------------------------------" << std::endl;
-    std::cout << "Customized DataWriter::write_Z!!!" << std::endl;
-    std::cout << "-------------------------------" << std::endl;
     bool ret_val = false;// ret_val默认初始值为false
     // 检查传入data指针是否为空
     if(data == nullptr){
@@ -106,9 +100,6 @@ bool DataWriter::write(
         void* data,
         fastrtps::rtps::WriteParams& params)
 {
-    std::cout << "-------------------------------" << std::endl;
-    std::cout << "Official DataWriter::write(void* data,fastrtps::rtps::WriteParams& params)" << std::endl;
-    std::cout << "-------------------------------" << std::endl;
     return impl_->write(data, params);
 }
 
@@ -116,9 +107,6 @@ ReturnCode_t DataWriter::write(
         void* data,
         const InstanceHandle_t& handle)
 {
-    std::cout << "-------------------------------" << std::endl;
-    std::cout << "Official DataWriter::write(void* data,const InstanceHandle_t& handle)" << std::endl;
-    std::cout << "-------------------------------" << std::endl;
     return impl_->write(data, handle);
 }
 

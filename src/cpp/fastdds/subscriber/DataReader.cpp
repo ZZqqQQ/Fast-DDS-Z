@@ -265,11 +265,17 @@ ReturnCode_t DataReader::read_next_sample(
     return impl_->read_next_sample(data, info);
 }
 
+ReturnCode_t DataReader::take_next_sample_Z(
+    void* data,
+    SampleInfo* info
+){
+    return impl_->read_or_take_next_sample_Z(data, info, true);
+}
+
 ReturnCode_t DataReader::take_next_sample(
         void* data,
         SampleInfo* info)
 {
-    std::cout << "DataReader::take_next_sample" << std::endl;
     return impl_->take_next_sample(data, info);
 }
 

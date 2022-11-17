@@ -715,6 +715,10 @@ public:
      *
      * @return Any of the standard return codes.
      */
+    RTPS_DllAPI ReturnCode_t take_next_sample_Z(
+        void* data,
+        SampleInfo* info);
+    
     RTPS_DllAPI ReturnCode_t take_next_sample(
             void* data,
             SampleInfo* info);
@@ -1082,6 +1086,10 @@ public:
      */
     RTPS_DllAPI ReturnCode_t get_listening_locators(
             rtps::LocatorList& locators) const;
+
+	RTPS_DllAPI DataReaderImpl* get_impl(){
+		return impl_;
+	}
 
 protected:
 

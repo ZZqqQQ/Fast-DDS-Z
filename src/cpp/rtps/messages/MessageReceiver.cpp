@@ -195,6 +195,7 @@ void MessageReceiver::process_data_message_without_security(
         const EntityId_t& reader_id,
         CacheChange_t& change)
 {
+    std::cout << "process_data_message_without_security" << std::endl;
     auto process_message = [&change](RTPSReader* reader)
             {
                 reader->processDataMsg(&change);

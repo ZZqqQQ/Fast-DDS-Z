@@ -155,6 +155,7 @@ RTPSParticipantImpl::RTPSParticipantImpl(
         UDPv4TransportDescriptor descriptor;
         descriptor.sendBufferSize = m_att.sendSocketBufferSize;
         descriptor.receiveBufferSize = m_att.listenSocketBufferSize;
+        std::cout << "RegisterTransport" << std::endl;
         m_network_Factory.RegisterTransport(&descriptor, &m_att.properties);
 
 #ifdef SHM_TRANSPORT_BUILTIN
@@ -166,6 +167,7 @@ RTPSParticipantImpl::RTPSParticipantImpl(
         shm_transport.segment_size(segment_size_udp_equivalent);
         // Use same default max_message_size on both UDP and SHM
         shm_transport.max_message_size(descriptor.max_message_size());
+        std::cout << "RegisterTransport SHM" << std::endl;
         has_shm_transport_ |= m_network_Factory.RegisterTransport(&shm_transport);
 #endif // ifdef SHM_TRANSPORT_BUILTIN
     }
@@ -251,6 +253,10 @@ RTPSParticipantImpl::RTPSParticipantImpl(
     if (m_att.builtin.metatrafficMulticastLocatorList.empty() && m_att.builtin.metatrafficUnicastLocatorList.empty())
     {
         get_default_metatraffic_locators();
+        std::cout << m_att.getName() << " Created with NO default Unicast Locator List, adding Locators:"
+                                                  << m_att.builtin.metatrafficMulticastLocatorList << std::endl;
+        std::cout << m_att.getName() << " Created with NO default Unicast Locator List, adding Locators:"
+                                                  << m_att.builtin.metatrafficUnicastLocatorList << std::endl;                                             
         internal_metatraffic_locators_ = true;
     }
     else
@@ -273,6 +279,7 @@ RTPSParticipantImpl::RTPSParticipantImpl(
                     m_network_Factory.fillMetatrafficUnicastLocator(locator, metatraffic_unicast_port);
                 });
         m_network_Factory.NormalizeLocators(m_att.builtin.metatrafficUnicastLocatorList);
+
     }
 
     // Initial peers
@@ -306,6 +313,8 @@ RTPSParticipantImpl::RTPSParticipantImpl(
         /* INSERT DEFAULT UNICAST LOCATORS FOR THE PARTICIPANT */
         get_default_unicast_locators();
         internal_default_locators_ = true;
+        std::cout << m_att.getName() << " Created with NO default Unicast Locator List, adding Locators:"
+                                                  << m_att.defaultUnicastLocatorList << std::endl;
         logInfo(RTPS_PARTICIPANT, m_att.getName() << " Created with NO default Unicast Locator List, adding Locators:"
                                                   << m_att.defaultUnicastLocatorList);
     }
@@ -343,7 +352,6 @@ RTPSParticipantImpl::RTPSParticipantImpl(
         m_att.defaultUnicastLocatorList.clear();
         m_att.defaultMulticastLocatorList.clear();
     }
-
     createReceiverResources(m_att.builtin.metatrafficMulticastLocatorList, true, false);
     createReceiverResources(m_att.builtin.metatrafficUnicastLocatorList, true, false);
     createReceiverResources(m_att.defaultUnicastLocatorList, true, false);
@@ -408,7 +416,6 @@ RTPSParticipantImpl::RTPSParticipantImpl(
         }
     }
 #endif // if HAVE_SECURITY
-
     mp_builtinProtocols = new BuiltinProtocols();
 
     // Initialize builtin protocols
@@ -417,6 +424,7 @@ RTPSParticipantImpl::RTPSParticipantImpl(
         logError(RTPS_PARTICIPANT, "The builtin protocols were not correctly initialized");
         return;
     }
+
 
     if (c_GuidPrefix_Unknown != persistence_guid)
     {
@@ -445,11 +453,11 @@ RTPSParticipantImpl::RTPSParticipantImpl(
 void RTPSParticipantImpl::enable()
 {
     mp_builtinProtocols->enable();
-
     //Start reception
     for (auto& receiver : m_receiverResourcelist)
     {
         receiver.Receiver->RegisterReceiver(receiver.mp_receiver);
+
     }
 }
 
@@ -1133,10 +1141,12 @@ bool RTPSParticipantImpl::createReader(
                 {
                     if (persistence != nullptr)
                     {
+                        // std::cout << "Create a StatefulPersistentReader" << std::endl;
                         return new StatefulPersistentReader(this, guid, param, payload_pool, hist, listen, persistence);
                     }
                     else
                     {
+                        // std::cout << "Create a StatefulReader" << std::endl;
                         return new StatefulReader(this, guid, param, payload_pool, hist, listen);
                     }
                 }
@@ -1144,11 +1154,13 @@ bool RTPSParticipantImpl::createReader(
                 {
                     if (persistence != nullptr)
                     {
+                        // std::cout << "Create a StatelessPersistentReader" << std::endl;
                         return new StatelessPersistentReader(this, guid, param, payload_pool, hist, listen,
                                        persistence);
                     }
                     else
                     {
+                        // std::cout << "Create a StatelessReader" << std::endl;
                         return new StatelessReader(this, guid, param, payload_pool, hist, listen);
                     }
                 }

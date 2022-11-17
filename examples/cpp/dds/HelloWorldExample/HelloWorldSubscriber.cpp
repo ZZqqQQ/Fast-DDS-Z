@@ -51,7 +51,7 @@ bool HelloWorldSubscriber::init(
         factory->load_profiles();
         factory->get_default_participant_qos(pqos);
     }
-
+    
     participant_ = factory->create_participant(0, pqos);
     if (participant_ == nullptr)
     {
@@ -102,14 +102,12 @@ bool HelloWorldSubscriber::init(
     {
         subscriber_->get_default_datareader_qos(rqos);
     }
-
     reader_ = subscriber_->create_datareader(topic_, rqos, &listener_);
 
     if (reader_ == nullptr)
     {
         return false;
     }
-
     return true;
 }
 
@@ -155,8 +153,7 @@ void HelloWorldSubscriber::SubListener::on_data_available(
         DataReader* reader)
 {
     SampleInfo info;
-    std::cout << "SubListener::on_data_avaiable" << std::endl;
-    if (reader->take_next_sample(&hello_, &info) == ReturnCode_t::RETCODE_OK)
+    if (reader->take_next_sample_Z(&hello_, &info) == ReturnCode_t::RETCODE_OK)
     {
         if (info.instance_state == ALIVE_INSTANCE_STATE)
         {

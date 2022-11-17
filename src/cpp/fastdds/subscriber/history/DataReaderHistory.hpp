@@ -289,6 +289,12 @@ public:
             const InstanceHandle_t& handle,
             bool exact);
 
+    std::pair<bool, instance_info> lookup_available_instance_Z(
+        const InstanceHandle_t& handle, 
+        bool exact
+    );
+
+
     /**
      * @brief Given an instance advance the iterator to the next instance with available data.
      *

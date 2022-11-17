@@ -188,7 +188,7 @@ int main(
 
     int type = 1;
     uint32_t count = 2;
-    uint32_t sleep = 100;
+    uint32_t sleep = 1000;
     bool use_environment_qos = false;
 
     argc -= (argc > 0);
@@ -309,7 +309,8 @@ int main(
             HelloWorldSubscriber mysub;
             if (mysub.init(use_environment_qos))
             {
-                mysub.run();
+                std::cin.get();
+                //mysub.run();
             }
             break;
         }

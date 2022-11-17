@@ -73,7 +73,7 @@ bool NetworkFactory::BuildReceiverResources(
                 std::shared_ptr<ReceiverResource> newReceiverResource = std::shared_ptr<ReceiverResource>(
                     new ReceiverResource(*transport, local, max_recv_buffer_size));
 
-                if (newReceiverResource->mValid)
+                if (newReceiverResource->mValid)//locator对应的的channel是否已经打开
                 {
                     returned_resources_list.push_back(newReceiverResource);
                     returnedValue = true;
@@ -120,7 +120,7 @@ bool NetworkFactory::RegisterTransport(
             }
         }
     }
-
+    std::cout << mRegisteredTransports.size() << std::endl;
     return wasRegistered;
 }
 
@@ -250,6 +250,7 @@ bool NetworkFactory::getDefaultMetatrafficMulticastLocators(
         // by another transport
         if (transport->kind() != LOCATOR_KIND_SHM)
         {
+        std::cout << "getDefaultMetatrafficMulticastLocators" <<std::endl;
             result |= transport->getDefaultMetatrafficMulticastLocators(locators, metatraffic_multicast_port);
         }
         else
@@ -260,6 +261,7 @@ bool NetworkFactory::getDefaultMetatrafficMulticastLocators(
 
     if (locators.size() == 0 && shm_transport)
     {
+        std::cout << "getDefaultMetatrafficMulticastLocators" <<std::endl;
         result |= shm_transport->getDefaultMetatrafficMulticastLocators(locators, metatraffic_multicast_port);
     }
 
@@ -288,6 +290,7 @@ bool NetworkFactory::getDefaultMetatrafficUnicastLocators(
     bool result = false;
     for (auto& transport : mRegisteredTransports)
     {
+        std::cout << "getDefaultMetatrafficUnicastLocators" <<std::endl;
         result |= transport->getDefaultMetatrafficUnicastLocators(locators, metatraffic_unicast_port);
     }
     return result;

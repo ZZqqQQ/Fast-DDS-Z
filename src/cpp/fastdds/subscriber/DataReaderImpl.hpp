@@ -51,6 +51,7 @@
 
 #include <fastdds/subscriber/history/DataReaderHistory.hpp>
 
+using eprosima::fastrtps::rtps::CacheChange_t;
 namespace eprosima {
 namespace fastrtps {
 namespace rtps {
@@ -70,6 +71,8 @@ class SubscriberImpl;
 class TopicDescription;
 
 using SampleInfoSeq = LoanableSequence<SampleInfo>;
+using SampleInfoSeq_RTC = LoanableTypedCollection<SampleInfo>;
+
 
 namespace detail {
 
@@ -372,11 +375,19 @@ public:
     ReturnCode_t delete_readcondition(
             ReadCondition* a_condition) noexcept;
 
+    ReturnCode_t read_or_take_next_sample_Z(
+            void* data,
+            SampleInfo* info,
+            bool read_or_take
+    );
+
     const detail::StateFilter& get_last_mask_state() const;
 
     void try_notify_read_conditions() noexcept;
 
     std::recursive_mutex& get_conditions_mutex() const noexcept;
+
+    fastrtps::rtps::RTPSReader* reader_ = nullptr;
 
 protected:
 
@@ -384,7 +395,7 @@ protected:
     SubscriberImpl* subscriber_ = nullptr;
 
     //!Pointer to associated RTPSReader
-    fastrtps::rtps::RTPSReader* reader_ = nullptr;
+    //fastrtps::rtps::RTPSReader* reader_ = nullptr;
 
     //! Pointer to the TopicDataType object.
     TypeSupport type_;
@@ -560,6 +571,61 @@ protected:
             void* data,
             SampleInfo* info,
             bool should_take);
+
+    bool check_instance_validity_and_get_sample_Z(
+            detail::DataReaderHistory::instance_info& instance_info, 
+            CacheChange_t** change);
+
+    bool check_instance_states_Z(
+            detail::DataReaderHistory::instance_info& instance_info,
+            const detail::StateFilter& states
+    );
+
+    bool goto_next_instance_Z(
+            detail::DataReaderHistory::instance_info& instance_info);
+
+    bool get_sample_and_check_sample_states_Z(
+            detail::DataReaderHistory::instance_info& instance_info, 
+            CacheChange_t** change, 
+            const detail::StateFilter& state);
+
+    bool process_change_Z(
+            detail::DataReaderHistory::instance_info& instance_info, 
+            CacheChange_t* change, 
+            LoanableCollection& data_values, 
+            SampleInfoSeq_RTC& sample_infos,
+            bool should_take);
+
+    // transplanted from ReadTakeCommand.hpp
+    bool check_datasharing_validity_RTC(
+            CacheChange_t* change,
+            bool has_ownership);
+
+    bool add_sample_RTC(
+            detail::DataReaderHistory::instance_info& instance_info, 
+            LoanableCollection& data_value,
+            SampleInfoSeq_RTC& sample_infos, 
+            //CacheChange_t*& const item,
+            CacheChange_t* const & item, 
+            bool& deserialization_error
+    );
+
+    void generate_info_RTC(
+            detail::DataReaderHistory::instance_info& instance_info, 
+			SampleInfoSeq_RTC& sample_infos, 
+            const detail::DataReaderCacheChange& item
+);
+
+    static void generate_info_RTC(
+            SampleInfo& info,
+            const detail::DataReaderInstance& instance,
+            const detail::DataReaderCacheChange& item);
+
+    bool deserialize_sample_RTC(
+            CacheChange_t* change, 
+            LoanableCollection& data_value);
+
+
 
     void set_read_communication_status(
             bool trigger_value);

@@ -120,7 +120,6 @@ bool PDPServer::init(
         logError(RTPS_PDP_SERVER, "Endpoint discovery configuration failed");
         return false;
     }
-
     std::vector<nlohmann::json> backup_queue;
     if (durability_ == TRANSIENT)
     {
